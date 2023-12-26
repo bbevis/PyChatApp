@@ -5,9 +5,9 @@
   }
   
   body {
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Montserrat;
     min-height: 100vh;
-    background-color: lightblue;
+    background-color: rgb(27, 204, 186);
   }
   
   hr {
@@ -31,7 +31,7 @@
   #home-header {
     text-align: center;
     margin: 20px 0;
-    color: rgb(0, 73, 101);
+    color: rgb(8, 76, 150);
   }
   
   #chat-widget-home {
@@ -123,7 +123,7 @@
   }
   
   #room-code-display {
-    color: rgb(0, 73, 101);
+    color: rgb(8, 76, 150);
   }
   
   #room-code-display span {
@@ -137,11 +137,11 @@
   
   #leave-chat-btn {
     color: white;
-    background-color: rgb(226, 29, 29);
+    background-color: rgb(247, 36, 133);
     font-weight: 800;
     text-decoration: none;
     padding: 6px;
-    border: 2px solid rgb(226, 29, 29);
+    border: 2px solid rgb(247, 36, 133);
     display: inline-block;
     margin-top: 5px;
     border-radius: 10px;
@@ -149,7 +149,7 @@
   }
   
   #leave-chat-btn:hover {
-    color: rgb(226, 29, 29);
+    color: rgb(247, 36, 133);
     background-color: white;
   }
   
