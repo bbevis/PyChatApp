@@ -123,7 +123,7 @@
   }
   
   #room-code-display {
-    color: rgb(8, 76, 150);
+    color: rgb(40, 40, 40);
   }
   
   #room-code-display span {
@@ -133,6 +133,15 @@
     color: rgb(40, 40, 40);
     font-family: monospace;
     padding: 8px 5px;
+  }
+
+  #room-topic-display span {
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+    color: black;
+    font-family: monospace;
+    padding: 20px 0px;
   }
   
   #leave-chat-btn {
