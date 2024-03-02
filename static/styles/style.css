@@ -90,14 +90,14 @@
   }
   
   #create {
-    border: 2px solid rgb(47, 47, 47);
-    color: rgb(47, 47, 47);
+    border: 2px solid rgb(247, 36, 133);
+    color: rgb(247, 36, 133);
     background-color: white;
     transition: all 0.1s ease-in;
   }
   
   #create:hover {
-    background-color: rgb(47, 47, 47);
+    background-color: rgb(247, 36, 133);
     color: white;
   }
   
@@ -256,4 +256,34 @@
     text-align: center;
     margin: 10px 0;
     color: grey;
+  }
+
+  .modal {
+    background-color: rgba(0,0,0,0.5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .modal.open {
+    opacity: .1;
+  }
+
+  .modal .content {
+    background-color: white;
+    border-radius: 6px;
+    text-align: left;
+    padding: 4rem;
+    box-shadow: 0 0 64px 12px rgba(255, 255, 255, 0.2);
+
+  }
+
+  .modal .titleText {
+    font-weight: 900;
+    font-size: 2rem;
   }
