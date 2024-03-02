@@ -1,6 +1,6 @@
 {% extends 'base.html' %} {% block content %}
 <div id="room-container">
-  <h1 id="home-header">FlashConvo</h1>
+  <h1 id="home-header">FlashTalk</h1>
   <div id="room-subsection">
     <h2 id="room-code-display">Room Code: <span>{{room}}</span></h2>
     <a href="/" id="leave-chat-btn">Leave the Chat</a>
@@ -19,8 +19,10 @@
     </div>
   </div>
   <script type="text/javascript">
+
     var socketio = io();
     socketio.on("message", function (message) { createChatItem(message.message, message.sender) });
+
     function createChatItem(message, sender) {
       var messages = document.getElementById("messages");
       if (sender === "") {
@@ -29,12 +31,16 @@
         var senderIsUser = "{{user}}" === sender;
         var content = `
           <li class="message-item ${senderIsUser ? "self-message-item" : "peer-message-item"}">
-              <p>${message}</p>
-              <small class="${senderIsUser ? "muted-text" : "muted-text-white"}">${new Date().toLocaleString()}</small>
+            <p>${message}</p>
+              <small class="${senderIsUser ? "muted-text" : "muted-text-white"}">
+                ${new Date().toLocaleString()}</small>
+                <small class="${senderIsUser ? "muted-text" : "muted-text-white"}">
+                  ${new sender}</small>
           </li>
       `;}
       messages.innerHTML += content;
     }
+    
     function sendMessage() {
       var msgInput = document.getElementById("message-input");
       if (msgInput.value === "") return;
@@ -45,9 +51,11 @@
       
   </script>
   {% for message in messages %}
+
   <script type="text/javascript">
     createChatItem("{{message.message}}", "{{message.sender}}");
   </script>
+  
   {% endfor %}
 </div>
 {% endblock %}

@@ -22,6 +22,7 @@ def home():
     session.clear()
     if request.method == "POST":
         name = request.form.get('name')
+
         create = request.form.get('create', False)
         code = request.form.get('code')
         join = request.form.get('join', False)
@@ -34,6 +35,7 @@ def home():
                 'messages': []
             }
             rooms[room_code] = new_room
+
         if join != False:
             # e.g. for 2nd participants, the room aleady exists.
             if not code:
@@ -101,3 +103,4 @@ def handle_disconnect():
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
+    
