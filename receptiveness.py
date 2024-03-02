@@ -1,6 +1,7 @@
 import os
 import regex
 import re
+import keywords
 import en_core_web_sm
 nlp = en_core_web_sm.load()
 
@@ -14,7 +15,7 @@ thresholds = [0.0, 1.5, 1.7, 1.2, 3.6, 1.2, 0.0, 0.0, 2.8]
 kw = keywords.kw
 
 ########################################
-# prepping data
+# prepping & cleaning data
 ########################################
 
 def clean_text(text):
