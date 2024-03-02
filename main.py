@@ -10,6 +10,7 @@ socketio = SocketIO(app)
 # A mock database to persist data
 rooms = {}
 
+
 def generate_room_code(length: int, existing_codes: list[str]) -> str:
     while True:
         code_chars = [random.choice(string.ascii_letters) for _ in range(length)]

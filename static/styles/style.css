@@ -258,6 +258,14 @@
     color: grey;
   }
 
+  button#openModal {
+    font-size: 2rem;
+    background-color: white;
+    padding: 1rem;
+    border: 0;
+    box-shadow: 0;
+  }
+  
   .modal {
     background-color: rgba(0,0,0,0.5);
     position: fixed;
@@ -266,15 +274,16 @@
     right: 0;
     display: flex;
     justify-content: center;
+    align-items: center;
     opacity: 0;
     transition: opacity 0.4s;
   }
 
-  .modal.open {
+  .modal .open {
     opacity: .1;
   }
 
-  .modal .content {
+  .modal.content {
     background-color: white;
     border-radius: 6px;
     text-align: left;
@@ -286,4 +295,25 @@
   .modal .titleText {
     font-weight: 900;
     font-size: 2rem;
+  }
+
+  .modal .messageText {
+    margin: 2rem 0;
+  }
+
+  .modal .content button {
+    width: 40%;
+    padding: 0.75rem;
+    margin: 0 5px;
+    color: white;
+    border: 0;
+    border-radius: 6px;
+  }
+
+  .modal .content button.cancelButtonText {
+    background-color: red;
+  }
+
+  .modal .content button.confirmButtonText {
+    background-color: green;
   }
