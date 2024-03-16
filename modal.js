@@ -60,7 +60,7 @@ class suggestModal {
 
         modalContentElem.appendChild(confirmButtonTextElem);
 
-        document.body.appendchild(this.modalElem);
+        document.body.appendChild(this.modalElem);
     }
     open() {
         return new Promise((resolve, reject) => {
