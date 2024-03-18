@@ -1,2 +1,2 @@
 # PyChatApp
-Dyadic conversations between humans and AI
+Dyadic conversations between humans with a machine-in-the-loop intervention
