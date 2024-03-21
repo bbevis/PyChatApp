@@ -1,3 +1,5 @@
+console.log("imported modal.js")
+
 class suggestModal {
     constructor({
         titleText,
