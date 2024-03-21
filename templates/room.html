@@ -1,33 +1,57 @@
 {% extends 'base.html' %} {% block content %}
+<script src="{{ url_for('static', filename='javascript/modal.js') }}"></script>
 <title>Modal Popup</title>
 <body>
-  <button id ="openModal">Open Modal</button>
+  <button id="openModal" onclick="openModal()">Open Modal</button>
 </body>
+
+<div id="modal" style="display: none">Modal Modal Modal</div>
 
 <div id="room-container">
   <h1 id="home-header">FlashTalk</h1>
   <div id="room-subsection">
     <h2 id="room-code-display">Room Code: <span>{{room}}</span></h2>
     <a href="/" id="leave-chat-btn">Leave the Chat</a>
-    <hr>
-    <h3 id="room-topic-display" >Discuss the following topic:</h3>
-    <br>
-    <p>"The US had done enough for Ukraine and should no longer provide financial support."</p>
+    <hr />
+    <h3 id="room-topic-display">Discuss the following topic:</h3>
+    <br />
+    <p>
+      "The US had done enough for Ukraine and should no longer provide financial
+      support."
+    </p>
   </div>
   <div id="chat-room-widget">
     <div id="msgs-container">
       <ul id="messages"></ul>
     </div>
     <div id="message-box">
-      <input type="text" placeholder="Enter your message" id="message-input" name="message" />
+      <input
+        type="text"
+        placeholder="Enter your message"
+        id="message-input"
+        name="message"
+      />
       <button type="submit" id="send-btn" onclick="sendMessage()">Send</button>
     </div>
   </div>
 
   <script type="text/javascript">
-
     var socketio = io();
-    socketio.on("message", function (message) { createChatItem(message.message, message.sender) });
+    socketio.on("message", function (message) {
+      createChatItem(message.message, message.sender);
+    });
+
+    socketio.on("modalMessage", (arg) => {
+      console.log("modalMessage: ", arg);
+      const {mainText, suggestedRevision} = arg;
+      // const revise = alert(mainText+ " " + suggestedRevision);
+      // if (revise){
+      //   const inputField = document.getElementById("message-input");
+      //   inputField.value = suggestedRevision;
+      // }
+
+      openModal(modalMessage, suggestedRevision);
+    })
 
     function createChatItem(message, sender) {
       var messages = document.getElementById("messages");
@@ -36,26 +60,29 @@
       } else {
         var senderIsUser = "{{user}}" === sender;
         var content = `
-          <li class="message-item ${senderIsUser ? "self-message-item" : "peer-message-item"}">
+          <li class="message-item ${
+            senderIsUser ? "self-message-item" : "peer-message-item"
+          }">
             <p>${message}</p>
-              <small class="${senderIsUser ? "muted-text" : "muted-text-white"}">
+              <small class="${
+                senderIsUser ? "muted-text" : "muted-text-white"
+              }">
                 ${new Date().toLocaleString()}</small>
           </li>
-      `;}
+      `;
+      }
       messages.innerHTML += content;
     }
-    
-    function sendMessage() {
 
+    function sendMessage() {
       var msgInput = document.getElementById("message-input");
       if (msgInput.value === "") return;
 
       var msg = msgInput.value;
+      console.log("message: ", msg);
       socketio.emit("message", { message: msg });
       msgInput.value = "";
-
     }
-      
   </script>
   {% for message in messages %}
 
@@ -65,4 +92,19 @@
 
   {% endfor %}
 </div>
+
+<script type="text/javascript" language="JavaScript">
+  function openModal() {
+    console.log(`Open Modal`);
+    const modalDiv = document.getElementById("modal");
+    modalDiv.style.display = "block"; // or "none" to hide it
+  }
+
+  function closeModal() {
+    console.log(`Modal open state: ${modalOpen}`);
+    const modalDiv = document.getElementById("modal");
+    modalDiv.style.display = "none"; // or "block" to display it
+  }
+</script>
+
 {% endblock %}

@@ -1,7 +1,8 @@
 from flask import Flask, request, render_template, redirect, url_for, session, flash
-from flask_socketio import SocketIO, join_room, leave_room, send
+from flask_socketio import SocketIO, join_room, leave_room, send, emit
 import random
 import string
+from testExternalCall import testFunc
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "supersecretkey"
@@ -75,9 +76,26 @@ def handle_connect():
         "message": f"{name} has entered the chat"
     }, to=room)
     rooms[room]["members"] += 1
-    
+
+# todo: probably create a new socketio event (candidate message?) and
+# @socketio.on('candidateMessage')
+# def handle_candidate_message(payload):
+#     room = session.get('room')
+#     name = session.get('name')
+# etc.
+    # message = {
+    #     "sender": name,
+    #     "message": gpt response
+    # }
+# emit('modalMessage', message, to=room)
+    # Todo: send new data to database
+
+
 @socketio.on('message')
 def handle_message(payload):
+    
+    testFuncReturn = testFunc()
+
     room = session.get('room')
     name = session.get('name')
     if room not in rooms:
@@ -87,7 +105,14 @@ def handle_message(payload):
         "message": payload["message"]
     }
     send(message, to=room)
+    # Todo: send new data to database
     rooms[room]["messages"].append(message)
+
+    modalMessage = {
+        "mainText": "what do you want to display in the modal?",
+        "suggestedRevision": "I am now polite"
+    }
+    emit('modalMessage', modalMessage, to=room)
     
 
     
