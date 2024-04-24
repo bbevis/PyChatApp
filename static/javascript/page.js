@@ -5,14 +5,14 @@
 const confirmModal = new suggestModal({
     titleText: "Are you sure you would like to send this message?",
     messageText: "You can choose to send this message instead as an alternative",
-    confirmText: "Accept",
-    cancelText: "Reject",
+    confirmText: "Accept suggestion",
+    cancelText: "Use original",
 });
 
 console.log(confirmModal)
 
 document
-    .getElementById('openModal') //Change to submit button
+    .getElementById('send-btn') //Change to submit button
     .addEventListener('click', () => {
         console.log('Send button clicked');
         //open modal from here

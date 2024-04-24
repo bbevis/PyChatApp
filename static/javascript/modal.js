@@ -12,7 +12,15 @@ class suggestModal {
     }
 
     createAndOpen(onConfirm, onCancel) {
+        // console.log("createAndOpen")
+        // // Grey background
+        // this.modalBackground = document.createElement('div')
+        // this.modalBackground.setAttribute("id", "modalBackground")
+        // this.modalBackground.classList.add('modalBackground')
+
+        // Top level
         this.modalElem = document.createElement('div');
+        this.modalElem.setAttribute("id", "modal")
         this.modalElem.classList.add('modal');
         setTimeout(() => {
             this.modalElem.classList.add('open');
@@ -47,7 +55,7 @@ class suggestModal {
             this.close();
         });
 
-        modalContentElem.appendChild(cancelTextElem);
+        modalContentElem.appendChild(cancelButtonTextElem);
 
         const confirmButtonTextElem = document.createElement('button');
         confirmButtonTextElem.classList.add('confirmButtonText');
