@@ -1,337 +1,358 @@
 import os
+import pandas as pd
 import regex
 import re
 import keywords
 import en_core_web_sm
+import time
 nlp = en_core_web_sm.load()
 
 
+class feature_extraction:
+    
+    def __init__(self, text):
+        
+        self.main_features = ['Acknowledgement', 'Agreement', 'Hedges', 'Negation', 'Positive_Emotion', 'Subjectivity', 'Adverb_Limiter', 'Disagreement', 'Negative_Emotion']
+        self.main_features_pos = ['Acknowledgement', 'Agreement', 'Hedges', 'Positive_Emotion', 'Subjectivity']
+        self.main_features_neg = ['Negation', 'Negative_Emotion', 'Adverb_Limiter', 'Disagreement']
+        self.kw = keywords.kw
 
-main_features = ['Acknowledgement', 'Agreement', 'Hedges', 'Negation', 'Positive_Emotion', 'Subjectivity', 'Adverb_Limiter', 'Disagreement', 'Negative_Emotion']
-main_features_pos = ['Acknowledgement', 'Agreement', 'Hedges', 'Positive_Emotion', 'Subjectivity']
-main_features_neg = ['Negation', 'Negative_Emotion', 'Adverb_Limiter', 'Disagreement']
+    ########################################
+    # prepping & cleaning data
+    ########################################
 
-thresholds = [0.0, 1.5, 1.7, 1.2, 3.6, 1.2, 0.0, 0.0, 2.8]
-kw = keywords.kw
+    def clean_text(self, text):
 
-########################################
-# prepping & cleaning data
-########################################
+        orig = ["let's", "i'm", "won't", "can't", "shan't", "'d",
+                "'ve", "'s", "'ll", "'re", "n't", "u.s.a.", "u.s.", "e.g.", "i.e.",
+                "‘", "’", "“", "”", "100%", "  ", "mr.", "mrs.", "dont", "wont"]
 
-def clean_text(text):
+        new = ["let us", "i am", "will not", "cannot", "shall not", " would",
+            " have", " is", " will", " are", " not", "usa", "usa", "eg", "ie",
+            "'", "'", '"', '"', "definitely", " ", "mr", "mrs", "do not", "would not"]
 
-    orig = ["let's", "i'm", "won't", "can't", "shan't", "'d",
-            "'ve", "'s", "'ll", "'re", "n't", "u.s.a.", "u.s.", "e.g.", "i.e.",
-            "‘", "’", "“", "”", "100%", "  ", "mr.", "mrs.", "dont", "wont"]
+        for i in range(len(orig)):
+            text = text.replace(orig[i], new[i])
 
-    new = ["let us", "i am", "will not", "cannot", "shall not", " would",
-           " have", " is", " will", " are", " not", "usa", "usa", "eg", "ie",
-           "'", "'", '"', '"', "definitely", " ", "mr", "mrs", "do not", "would not"]
+        return text
 
-    for i in range(len(orig)):
-        text = text.replace(orig[i], new[i])
+    def prep_simple(self, text):
 
-    return text
+        # text cleaning
 
-def prep_simple(text):
+        t = text.lower()
+        t = self.clean_text(t)
+        t = re.sub(r"[.?!]+\ *", "", t)  # spcifially replace punctuations with nothing
+        t = re.sub('[^A-Za-z,]', ' ', t)  # all other special chracters are replaced with blanks
 
-    # text cleaning
+        return t
 
-    t = text.lower()
-    t = clean_text(t)
-    t = re.sub(r"[.?!]+\ *", "", t)  # spcifially replace punctuations with nothing
-    t = re.sub('[^A-Za-z,]', ' ', t)  # all other special chracters are replaced with blanks
+    def sentence_split(self, doc):
 
-    return t
+        # doc = nlp(text)
+        sentences = [str(sent) for sent in doc.sents]
+        sentences = [' ' + self.prep_simple(str(s)) + ' ' for s in sentences]
 
-def sentence_split(doc):
+        return sentences
 
-    # doc = nlp(text)
-    sentences = [str(sent) for sent in doc.sents]
-    sentences = [' ' + prep.prep_simple(str(s)) + ' ' for s in sentences]
+    def sentence_pad(self, doc):
 
-    return sentences
+        sentences = self.sentence_split(doc)
 
+        return ''.join(sentences)
 
-def sentence_pad(doc):
+    ########################################
+    # extracting features
+    ########################################
 
-    sentences = sentence_split(doc)
+    def count_matches(self, keywords, doc):
+        """
+        For a given piece of text, search for the number if keywords from a prespecified list
 
-    return ''.join(sentences)
+        Inputs: Prespecified list (keywords), text
 
-########################################
-# extracting features
-########################################
+        Outputs: Counts of keyword matches
+        """
 
-def count_matches(keywords, doc):
-    """
-    For a given piece of text, search for the number if keywords from a prespecified list
+        text = self.sentence_pad(doc)
 
-    Inputs:
-            Prespecified list (keywords)
-            text
+        # print(text)
 
-    Outputs:
-            Counts of keyword matches
-    """
+        key_res = []
+        phrase2_count = []
 
-    text = sentence_pad(doc)
+        for key in keywords:
 
-    # print(text)
+            key_res.append(key)
+            counter = 0
 
-    key_res = []
-    phrase2_count = []
+            check = any(item in text for item in keywords[key])
 
-    for key in keywords:
+            if check == True:
 
-        key_res.append(key)
-        counter = 0
+                for phrase in keywords[key]:
 
-        check = any(item in text for item in keywords[key])
+                    phrase_count = text.count(phrase)
 
-        if check == True:
+                    if phrase_count > 0:
 
-            for phrase in keywords[key]:
+                        counter = counter + phrase_count
 
-                phrase_count = text.count(phrase)
+            phrase2_count.append(counter)
 
-                if phrase_count > 0:
+        res = pd.DataFrame([key_res, phrase2_count], index=['Features', 'Counts']).T
 
-                    counter = counter + phrase_count
+        return res
 
-        phrase2_count.append(counter)
 
-    res = pd.DataFrame([key_res, phrase2_count], index=['Features', 'Counts']).T
+    def get_dep_pairs(self, doc):
+        """
+        Uses spaCy to find list of dependency pairs from text.
+        Performs negation handling where by any dependency pairs related to a negated term is removed
 
-    return res
+        Input: Text
 
+        Outputs: Dependency pairs from text that do not have ROOT as the head token or is a negated term
+        """
 
-def get_dep_pairs(doc):
-    """
-    Uses spaCy to find list of dependency pairs from text.
-    Performs negation handling where by any dependency pairs related to a negated term is removed
+        dep_pairs = [[token.dep_, token.head.text, token.head.i, token.text, token.i] for token in doc]
 
-    Input:
-            Text
 
-    Outputs:
-            Dependency pairs from text that do not have ROOT as the head token or is a negated term
-    """
+        negations = [dep_pairs[i] for i in range(len(dep_pairs)) if dep_pairs[i][0] == 'neg']
+        token_place = [dep_pairs[i][2] for i in range(len(dep_pairs)) if dep_pairs[i][0] == 'neg']
 
-    dep_pairs = [[token.dep_, token.head.text, token.head.i, token.text, token.i] for token in doc]
+        dep_pairs2 = []
 
+        if len(negations) > 0:
 
-    negations = [dep_pairs[i] for i in range(len(dep_pairs)) if dep_pairs[i][0] == 'neg']
-    token_place = [dep_pairs[i][2] for i in range(len(dep_pairs)) if dep_pairs[i][0] == 'neg']
+            for j in range(len(dep_pairs)):
 
-    dep_pairs2 = []
+                if dep_pairs[j][2] not in token_place and dep_pairs[j] not in dep_pairs2:
+                    dep_pairs2.append(dep_pairs[j])
 
-    if len(negations) > 0:
+        else:
+            dep_pairs2 = dep_pairs.copy()
 
-        for j in range(len(dep_pairs)):
+        dep_pairs2 = [[dep_pairs2[i][0], dep_pairs2[i][1], dep_pairs2[i][3]] for i in range(len(dep_pairs2))]
 
-            if dep_pairs[j][2] not in token_place and dep_pairs[j] not in dep_pairs2:
-                dep_pairs2.append(dep_pairs[j])
+        return dep_pairs2, negations
 
-    else:
-        dep_pairs2 = dep_pairs.copy()
 
-    dep_pairs2 = [[dep_pairs2[i][0], dep_pairs2[i][1], dep_pairs2[i][3]] for i in range(len(dep_pairs2))]
+    def get_dep_pairs_noneg(self, doc):
+        """
+        No negation is done as we are only searching 'hits'
+        """
+        return [[token.dep_, token.head.text, token.text] for token in doc]
 
-    return dep_pairs2, negations
 
+    def count_spacy_matches(self, keywords, dep_pairs):
+        """
+        When searching for key words are not sufficient, we may search for dependency pairs.
+        Finds any-prespecified dependency pairs from text string and outputs the counts
 
-def get_dep_pairs_noneg(doc):
-    """
-    No negation is done as we are only searching 'hits'
-    """
-    return [[token.dep_, token.head.text, token.text] for token in doc]
+        Inputs:
+                Dependency pairs from text
+                Predefined tokens for search in dependency heads
 
+        Output:
+                Count of dependency pair matches
+        """
 
-def count_spacy_matches(keywords, dep_pairs):
-    """
-    When searching for key words are not sufficient, we may search for dependency pairs.
-    Finds any-prespecified dependency pairs from text string and outputs the counts
+        key_res = []
+        phrase2_count = []
 
-    Inputs:
-            Dependency pairs from text
-            Predefined tokens for search in dependency heads
+        for key in keywords:
+            key_res.append(key)
+            counter = 0
+            check = any(item in dep_pairs for item in keywords[key])
 
-    Output:
-            Count of dependency pair matches
-    """
+            if check == True:
 
-    key_res = []
-    phrase2_count = []
+                for phrase in keywords[key]:
+                    if phrase in dep_pairs:
+                        for dep in dep_pairs:
+                            if phrase == dep:
+                                counter = counter + 1
 
-    for key in keywords:
-        # print(key)
+            phrase2_count.append(counter)
 
-        key_res.append(key)
-        counter = 0
+        res = pd.DataFrame([key_res, phrase2_count], index=['Features', 'Counts']).T
 
-        check = any(item in dep_pairs for item in keywords[key])
+        return res
 
-        if check == True:
 
-            for phrase in keywords[key]:
+    def token_count(self, doc):
 
-                if phrase in dep_pairs:
+        # Counts number of words in a text string
+        return len([token for token in doc])
 
-                    for dep in dep_pairs:
 
-                        if phrase == dep:
+    def bare_command(self, doc):
+        """
+        Check the first word of each sentence is a verb AND is contained in list of key words
 
-                            counter = counter + 1
+        Output: Count of matches
+        """
 
-        phrase2_count.append(counter)
+        keywords = set([' be ', ' do ', ' please ', ' have ', ' thank ', ' hang ', ' let '])
 
-    res = pd.DataFrame([key_res, phrase2_count], index=['Features', 'Counts']).T
+        # Returns first word of every sentence along with the corresponding POS
+        first_words = [' ' + self.prep_simple(str(sent[0])) + ' ' for sent in doc.sents]
 
-    return res
+        POS_fw = [sent[0].tag_ for sent in doc.sents]
 
+        # returns word if word is a verb and in list of keywords
+        bc = [b for a, b in zip(POS_fw, first_words) if a == 'VB' and b not in keywords]
 
-def token_count(doc):
+        return len(bc)
 
-    # Counts number of words in a text string
-    return len([token for token in doc])
+    def Question(self, doc):
+        """
+        Counts number of prespecified question words
+        """
 
+        keywords = set([' who ', ' what ', ' where ', ' when ', ' why ', ' how ', ' which '])
+        tags = set(['WRB', 'WP', 'WDT'])
 
-def bare_command(doc):
-    """
-    Check the first word of each sentence is a verb AND is contained in list of key words
+        sentences = [str(sent) for sent in doc.sents if '?' in str(sent)]
 
-    Output: Count of matches
-    """
+        all_qs = len(sentences)
 
-    keywords = set([' be ', ' do ', ' please ', ' have ', ' thank ', ' hang ', ' let '])
+        n = 0
+        for i in range(len(sentences)):
+            whq = [token.tag_ for token in nlp(sentences[i]) if token.tag_ in tags]
 
-    # Returns first word of every sentence along with the corresponding POS
-    first_words = [' ' + prep.prep_simple(str(sent[0])) + ' ' for sent in doc.sents]
+            if len(whq) > 0:
+                n += 1
 
-    POS_fw = [sent[0].tag_ for sent in doc.sents]
+        return all_qs - n, n
 
-    # returns word if word is a verb and in list of keywords
-    bc = [b for a, b in zip(POS_fw, first_words) if a == 'VB' and b not in keywords]
 
-    return len(bc)
+    def word_start(self, keywords, doc):
+        """
+        Find first words in text such as conjunctions and affirmations
+        """
 
+        key_res = []
+        phrase2_count = []
 
-def Question(doc):
-    """
-    Counts number of prespecified question words
-    """
+        for key in keywords:
 
-    keywords = set([' who ', ' what ', ' where ', ' when ', ' why ', ' how ', ' which '])
-    tags = set(['WRB', 'WP', 'WDT'])
+            first_words = [' ' + self.prep_simple(str(sent[0])) + ' ' for sent in doc.sents]
+            #first_words = [prep.prep_simple(str(fw)) for fw in first_words]
+            cs = [w for w in first_words if w in keywords[key]]
 
-    sentences = [str(sent) for sent in doc.sents if '?' in str(sent)]
+            phrase2_count.append(len(cs))
+            key_res.append(key)
 
-    all_qs = len(sentences)
+        res = pd.DataFrame([key_res, phrase2_count], index=['Features', 'Counts']).T
+        return res
 
-    n = 0
-    for i in range(len(sentences)):
-        whq = [token.tag_ for token in nlp(sentences[i]) if token.tag_ in tags]
 
-        if len(whq) > 0:
-            n += 1
+    def adverb_limiter(self, keywords, doc):
+        """
+        Search for tokens that are advmod and in the prespecifid list of words
+        """
 
-    return all_qs - n, n
+        tags = [token.dep_ for token in doc if token.dep_ == 'advmod' and
+                str(' ' + str(token) + ' ') in keywords['Adverb_Limiter']]
 
+        return len(tags)
 
-def word_start(keywords, doc):
-    """
-    Find first words in text such as conjunctions and affirmations
-    """
 
-    key_res = []
-    phrase2_count = []
+    ########################################
+    # feature scores
+    ########################################
 
-    for key in keywords:
 
-        first_words = [' ' + prep.prep_simple(str(sent[0])) + ' ' for sent in doc.sents]
-        #first_words = [prep.prep_simple(str(fw)) for fw in first_words]
-        cs = [w for w in first_words if w in keywords[key]]
+    def feat_counts(self, text, kw):
+        """
+        Main function for getting the features from text input.
+        Calls other functions to load dataset, clean text, counts features,
+        removes negation phrases.
 
-        phrase2_count.append(len(cs))
-        key_res.append(key)
+        Input:
+                Text string
+                Saved data of keywords and dependency pairs from pickle files
 
-    res = pd.DataFrame([key_res, phrase2_count], index=['Features', 'Counts']).T
-    return res
+        Output:
+                Feature counts
+        """
 
+        text = re.sub('(?<! )(?=[.,!?()])|(?<=[.,!?()])(?! )', r' ', text)
+        text = text.lstrip()
 
-def adverb_limiter(keywords, doc):
-    """
-    Search for tokens that are advmod and in the prespecifid list of words
-    """
+        clean_text = self.prep_simple(text)
 
-    tags = [token.dep_ for token in doc if token.dep_ == 'advmod' and
-            str(' ' + str(token) + ' ') in keywords['Adverb_Limiter']]
+        doc_text = nlp(text)
+        doc_clean_text = nlp(clean_text)
 
-    return len(tags)
+        # Count key words and dependency pairs with negation
+        kw_matches = self.count_matches(kw['word_matches'], doc_text)
 
+        dep_pairs, negations = self.get_dep_pairs(doc_clean_text)
+        dep_pair_matches = self.count_spacy_matches(kw['spacy_pos'], dep_pairs)
 
-########################################
-# feature scores
-########################################
+        dep_pairs_noneg = self.get_dep_pairs_noneg(doc_clean_text)
+        disagreement = self.count_spacy_matches(kw['spacy_noneg'], dep_pairs_noneg)
 
+        neg_dp = set([' ' + i[1] + ' ' for i in negations])
+        neg_only = self.count_spacy_matches(kw['spacy_neg_only'], neg_dp)
 
-def feat_counts(text, kw):
-    """
-    Main function for getting the features from text input.
-    Calls other functions to load dataset, clean text, counts features,
-    removes negation phrases.
+        # count start word matches like conjunctions and affirmations
+        start_matches = self.word_start(kw['word_start'], doc_text)
 
-    Input:
-            Text string
-            Saved data of keywords and dependency pairs from pickle files
+        scores = pd.concat([kw_matches, dep_pair_matches, disagreement, start_matches, neg_only])
+        scores = scores.groupby('Features').sum().sort_values(by='Counts', ascending=False)
+        scores = scores.reset_index()
 
-    Output:
-            Feature counts
-    """
+        # add remaining features
+        bc = self.bare_command(doc_text)
+        scores.loc[len(scores)] = ['Bare_Command', bc]
 
-    text = re.sub('(?<! )(?=[.,!?()])|(?<=[.,!?()])(?! )', r' ', text)
-    text = text.lstrip()
+        ynq, whq = self.Question(doc_text)
 
-    clean_text = prep.prep_simple(text)
+        scores.loc[len(scores)] = ['YesNo_Questions', ynq]
+        scores.loc[len(scores)] = ['WH_Questions', whq]
 
-    doc_text = nlp(text)
-    doc_clean_text = nlp(clean_text)
+        adl = self.adverb_limiter(kw['spacy_tokentag'], doc_text)
+        scores.loc[len(scores)] = ['Adverb_Limiter', adl]
 
-    # Count key words and dependency pairs with negation
-    kw_matches = count_matches(kw['word_matches'], doc_text)
+        scores = scores.sort_values(by='Counts', ascending=False)
 
-    dep_pairs, negations = get_dep_pairs(doc_clean_text)
-    dep_pair_matches = count_spacy_matches(kw['spacy_pos'], dep_pairs)
+        tokens = self.token_count(doc_text)
+        scores.loc[len(scores)] = ['Token_count', tokens]
 
-    dep_pairs_noneg = get_dep_pairs_noneg(doc_clean_text)
-    disagreement = count_spacy_matches(kw['spacy_noneg'], dep_pairs_noneg)
+        return scores
 
-    neg_dp = set([' ' + i[1] + ' ' for i in negations])
-    neg_only = count_spacy_matches(kw['spacy_neg_only'], neg_dp)
+    def normalise_scores(self, scores):
+        """
+        Divides feature counts by 100 words/tokens
+        """
 
-    # count start word matches like conjunctions and affirmations
-    start_matches = word_start(kw['word_start'], doc_text)
+        token_count = list(scores['Counts'][scores['Features'] == 'Token_count'])[0]
+        scores['Counts_norm'] = scores['Counts'] / token_count * 100
 
-    scores = pd.concat([kw_matches, dep_pair_matches, disagreement, start_matches, neg_only])
-    scores = scores.groupby('Features').sum().sort_values(by='Counts', ascending=False)
-    scores = scores.reset_index()
+        return scores
 
-    # add remaining features
-    bc = bare_command(doc_text)
-    scores.loc[len(scores)] = ['Bare_Command', bc]
+    def extract_features(self, text):
 
-    ynq, whq = Question(doc_text)
+        start_time = time.process_time()
+        
+        scores = self.feat_counts(text, self.kw)
+        scores = self.normalise_scores(scores)
+        scores = scores.rename(columns={"Features": "features", "Counts": "feature_counts", "Counts_norms": "features_per_wordcount"})
+        
+        delta = round(time.process_time() - start_time, 3)
+        print('Runtime: ', delta)
 
-    scores.loc[len(scores)] = ['YesNo_Questions', ynq]
-    scores.loc[len(scores)] = ['WH_Questions', whq]
+        return scores
 
-    adl = adverb_limiter(kw['spacy_tokentag'], doc_text)
-    scores.loc[len(scores)] = ['Adverb_Limiter', adl]
+if __name__ == "__main__":
+    
+    text = 'Hello! I understand your perspective but you are so dumb.'
+    recp = feature_extraction(text)
 
-    scores = scores.sort_values(by='Counts', ascending=False)
-
-    tokens = token_count(doc_text)
-    scores.loc[len(scores)] = ['Token_count', tokens]
-
-    return scores
+    features = recp.extract_features(text)
+    print(features)
+    
